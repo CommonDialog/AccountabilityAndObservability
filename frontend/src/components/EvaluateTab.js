@@ -45,6 +45,21 @@ function FoodResultCard({ food, rank }) {
       {food.generationMetadata && (
         <div className="generation-metadata">
           <h4>🤖 AI Generation Details</h4>
+          
+          {food.generationMetadata.userBiasIndicators && food.generationMetadata.userBiasIndicators.length > 0 && (
+            <div className="metadata-section">
+              <h5>⚠️ User Input Bias Detection:</h5>
+              <div className="bias-result biased">
+                <p><strong>Bias Detected in Input:</strong></p>
+                <ul>
+                  {food.generationMetadata.userBiasIndicators.map((indicator, idx) => (
+                    <li key={idx}>{indicator}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+          
           <div className="metadata-section">
             <h5>Claude's Generated JSON:</h5>
             <pre className="json-display">{JSON.stringify(food.generationMetadata.claudeResponse, null, 2)}</pre>

@@ -437,6 +437,30 @@ body {
   font-size: 0.85rem;
 }
 
+.bias-detected-section {
+  background: #fff5f5;
+  border: 2px solid #ff6b6b;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.bias-detected-section strong {
+  color: #d32f2f;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.bias-detected-section ul {
+  margin-left: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.bias-detected-section li {
+  color: #d32f2f;
+  margin-bottom: 0.25rem;
+}
+
 /* Generation Metadata Styles */
 .generation-metadata {
   margin-top: 1.5rem;

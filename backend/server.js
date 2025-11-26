@@ -42,12 +42,33 @@ function detectBias(foodData, userPrompt = '') {
     const biasIndicators = [];
     const prompt = userPrompt.toLowerCase();
     
+    console.log(`[detectBias] Checking prompt: "${userPrompt}"`);
+    
+    // Check for unhealthy food bias
     if (prompt.includes('junk food') || prompt.includes('unhealthy')) {
         biasIndicators.push('User explicitly requested junk food');
     }
     if (prompt.includes('greasy') || prompt.includes('fried')) {
         biasIndicators.push('User may be biased toward unhealthy options');
     }
+    
+    // Check for fast food chains
+    const fastFoodKeywords = ['mcdonalds', 'burger king', 'kfc', 'taco bell', 'wendys', 'popeyes'];
+    if (fastFoodKeywords.some(keyword => prompt.includes(keyword))) {
+        biasIndicators.push('User requested fast food chain item');
+    }
+    
+    // Check for excessive sugar/candy
+    if (prompt.includes('candy') || prompt.includes('chocolate') || prompt.includes('dessert') || prompt.includes('cake')) {
+        biasIndicators.push('User may be biased toward high-sugar options');
+    }
+    
+    // Check for alcohol
+    if (prompt.includes('beer') || prompt.includes('wine') || prompt.includes('alcohol') || prompt.includes('liquor')) {
+        biasIndicators.push('User requested alcoholic beverage (not appropriate for work food)');
+    }
+    
+    console.log(`[detectBias] Found ${biasIndicators.length} bias indicators:`, biasIndicators);
     
     return biasIndicators;
 }
@@ -575,7 +596,11 @@ Respond with a JSON object containing:
         console.log('=========================\n');
         
         client.release();
-        res.json({ foods: foodData, biasCheck: biasResult });
+        res.json({ 
+            foods: foodData, 
+            biasCheck: biasResult,
+            userBiasIndicators: biasIndicators
+        });
     } catch (error) {
         // Log error to console and database
         const errorLogText = `Claude API Error - Food: ${req.body.foodName}, Error: ${error.message}, Stack: ${error.stack}`;
@@ -677,6 +702,19 @@ app.post('/api/evaluate', upload.single('file'), async (req, res) => {
             
             // Run multi-step evaluation
             const evaluation = await multiStepEvaluation(foodData, teamMembers, config);
+            
+            // Add bias detection to evaluation steps if any indicators found
+            if (biasIndicators.length > 0) {
+                evaluation.steps.unshift({
+                    step: 0,
+                    type: 'user_bias_detection',
+                    text: `⚠️ USER INPUT BIAS DETECTED: ${biasIndicators.join('; ')}`
+                });
+                // Renumber all steps
+                evaluation.steps.forEach((step, index) => {
+                    step.step = index + 1;
+                });
+            }
             
             // Insert food submission
             const submissionResult = await client.query(

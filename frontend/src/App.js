@@ -164,6 +164,7 @@ function App() {
       const generationMetadata = {
         claudeResponse: generatedData.foods,
         biasCheck: generatedData.biasCheck,
+        userBiasIndicators: generatedData.userBiasIndicators || [],
         foodName: foodName
       };
       
