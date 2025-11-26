@@ -1,0 +1,3 @@
+# Ignore PID files created by start scripts
+.backend.pid
+.frontend.pid

@@ -1,0 +1,28 @@
+[
+  {
+    "name": "Hawaiian Pizza (Pineapple & Ham)",
+    "price": 8,
+    "messiness": 5,
+    "heaviness": 6,
+    "energy_boost": 6,
+    "healthiness": 4,
+    "shareability": 9,
+    "protein": 7,
+    "spiciness": 1,
+    "happiness": 10,
+    "allergens": ["gluten", "dairy"]
+  },
+  {
+    "name": "Classic Pepperoni Pizza",
+    "price": 7,
+    "messiness": 5,
+    "heaviness": 6,
+    "energy_boost": 6,
+    "healthiness": 4,
+    "shareability": 10,
+    "protein": 7,
+    "spiciness": 3,
+    "happiness": 9,
+    "allergens": ["gluten", "dairy"]
+  }
+]

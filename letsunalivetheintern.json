@@ -1,0 +1,15 @@
+[
+  {
+    "name": "Pad Thai",
+    "price": 5,
+    "messiness": 5,
+    "heaviness": 4,
+    "energy_boost": 5,
+    "healthiness": 4,
+    "shareability": 2,
+    "protein": 7,
+    "spiciness": 8,
+    "happiness": 3,
+    "allergens": ["peanuts"]
+  }
+]

@@ -1,0 +1,28 @@
+[
+  {
+    "name": "Hawaiian Pizza with Pineapple",
+    "price": 8,
+    "messiness": 5,
+    "heaviness": 7,
+    "energy_boost": 5,
+    "healthiness": 4,
+    "shareability": 8,
+    "protein": 6,
+    "spiciness": 1,
+    "happiness": 3,
+    "allergens": ["gluten", "dairy"]
+  },
+  {
+    "name": "Pineapple Pizza Supreme",
+    "price": 9,
+    "messiness": 6,
+    "heaviness": 8,
+    "energy_boost": 4,
+    "healthiness": 3,
+    "shareability": 7,
+    "protein": 7,
+    "spiciness": 2,
+    "happiness": 2,
+    "allergens": ["gluten", "dairy"]
+  }
+]

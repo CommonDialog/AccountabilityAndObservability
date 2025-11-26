@@ -1,0 +1,67 @@
+[
+  {
+    "name": "Pizza Margherita",
+    "price": 7,
+    "messiness": 5,
+    "heaviness": 6,
+    "energy_boost": 6,
+    "healthiness": 5,
+    "shareability": 9,
+    "protein": 6,
+    "spiciness": 2,
+    "happiness": 8,
+    "allergens": ["gluten", "dairy"]
+  },
+  {
+    "name": "Sushi Combo",
+    "price": 9,
+    "messiness": 3,
+    "heaviness": 4,
+    "energy_boost": 7,
+    "healthiness": 8,
+    "shareability": 8,
+    "protein": 9,
+    "spiciness": 3,
+    "happiness": 9,
+    "allergens": ["fish", "soy"]
+  },
+  {
+    "name": "Chicken Wings",
+    "price": 6,
+    "messiness": 9,
+    "heaviness": 7,
+    "energy_boost": 5,
+    "healthiness": 4,
+    "shareability": 10,
+    "protein": 8,
+    "spiciness": 7,
+    "happiness": 9,
+    "allergens": []
+  },
+  {
+    "name": "Caesar Salad",
+    "price": 8,
+    "messiness": 2,
+    "heaviness": 3,
+    "energy_boost": 4,
+    "healthiness": 9,
+    "shareability": 6,
+    "protein": 5,
+    "spiciness": 1,
+    "happiness": 6,
+    "allergens": ["dairy", "fish", "gluten"]
+  },
+  {
+    "name": "Beef Burrito",
+    "price": 7,
+    "messiness": 8,
+    "heaviness": 9,
+    "energy_boost": 7,
+    "healthiness": 5,
+    "shareability": 7,
+    "protein": 8,
+    "spiciness": 6,
+    "happiness": 8,
+    "allergens": ["dairy", "gluten"]
+  }
+]
