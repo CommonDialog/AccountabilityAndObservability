@@ -63,29 +63,60 @@ function FoodResultCard({ food, rank }) {
   );
 }
 
-function EvaluateTab({ selectedFile, onFileSelect, onEvaluate, loading, results }) {
+function EvaluateTab({ selectedFile, onFileSelect, onEvaluate, loading, results, foodName, onFoodNameChange, onGenerateAndEvaluate }) {
   return (
     <div className="tab-content">
       <div className="upload-section">
-        <h2>Upload Food Options (JSON)</h2>
-        <div className="file-upload">
-          <input
-            type="file"
-            accept=".json"
-            onChange={onFileSelect}
-            id="file-input"
-          />
-          <label htmlFor="file-input" className="file-label">
-            {selectedFile ? selectedFile.name : 'Choose JSON file...'}
-          </label>
+        <h2>Enter Food Name or Upload JSON</h2>
+        
+        <div className="food-name-section">
+          <h3>Option 1: Enter Food Name</h3>
+          <p className="helper-text">Let AI generate the ratings for you!</p>
+          <div className="food-name-input">
+            <label htmlFor="food-name-input">Name of Food:</label>
+            <input
+              type="text"
+              id="food-name-input"
+              placeholder="e.g., Pizza Margherita, Chicken Wings, Sushi..."
+              value={foodName}
+              onChange={(e) => onFoodNameChange(e.target.value)}
+              className="food-name-field"
+            />
+          </div>
+          <button
+            onClick={onGenerateAndEvaluate}
+            disabled={!foodName || loading}
+            className="btn-primary"
+          >
+            {loading ? 'Generating & Evaluating...' : 'Generate & Evaluate Food'}
+          </button>
         </div>
-        <button
-          onClick={onEvaluate}
-          disabled={!selectedFile || loading}
-          className="btn-primary"
-        >
-          {loading ? 'Evaluating...' : 'Evaluate Foods'}
-        </button>
+
+        <div className="divider">
+          <span>OR</span>
+        </div>
+
+        <div className="file-upload-section">
+          <h3>Option 2: Upload Food Options (JSON)</h3>
+          <div className="file-upload">
+            <input
+              type="file"
+              accept=".json"
+              onChange={onFileSelect}
+              id="file-input"
+            />
+            <label htmlFor="file-input" className="file-label">
+              {selectedFile ? selectedFile.name : 'Choose JSON file...'}
+            </label>
+          </div>
+          <button
+            onClick={onEvaluate}
+            disabled={!selectedFile || loading}
+            className="btn-primary"
+          >
+            {loading ? 'Evaluating...' : 'Evaluate Foods'}
+          </button>
+        </div>
 
         <div className="format-info">
           <h3>Expected JSON Format:</h3>

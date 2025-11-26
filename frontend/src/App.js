@@ -16,6 +16,7 @@ function App() {
   const [team, setTeam] = useState([]);
   const [config, setConfig] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [foodName, setFoodName] = useState('');
   const [evaluationResults, setEvaluationResults] = useState(null);
   const [searchResults, setSearchResults] = useState(null);
   const [reviewQueue, setReviewQueue] = useState([]);
@@ -118,11 +119,68 @@ function App() {
       const data = await response.json();
       setEvaluationResults(data.foods);
       setSelectedFile(null);
+      setFoodName('');
       loadReviewQueue();
       loadCompliance();
       toast.success(`Successfully evaluated ${data.foods.length} food item(s)!`);
     } catch (err) {
       const errorMsg = `Error evaluating food: ${err.message}`;
+      setError(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerateAndEvaluate = async () => {
+    if (!foodName) {
+      const errorMsg = 'Please enter a food name';
+      setError(errorMsg);
+      toast.error(errorMsg);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setEvaluationResults(null);
+
+    try {
+      // Step 1: Generate food JSON from name using Claude API
+      toast.info('Generating food ratings with AI...');
+      const generateResponse = await fetch(`${API_URL}/generate-food`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ foodName }),
+      });
+
+      if (!generateResponse.ok) {
+        const errorData = await generateResponse.json();
+        throw new Error(errorData.error || 'Failed to generate food data');
+      }
+
+      const generatedData = await generateResponse.json();
+      
+      // Step 2: Evaluate the generated food
+      toast.info('Evaluating food...');
+      const evaluateResponse = await fetch(`${API_URL}/evaluate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ foods: generatedData.foods }),
+      });
+
+      if (!evaluateResponse.ok) {
+        const errorData = await evaluateResponse.json();
+        throw new Error(errorData.error || 'Evaluation failed');
+      }
+
+      const data = await evaluateResponse.json();
+      setEvaluationResults(data.foods);
+      setFoodName('');
+      loadReviewQueue();
+      loadCompliance();
+      toast.success(`Successfully generated and evaluated ${foodName}!`);
+    } catch (err) {
+      const errorMsg = `Error: ${err.message}`;
       setError(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -281,6 +339,9 @@ function App() {
             onEvaluate={handleEvaluate}
             loading={loading}
             results={evaluationResults}
+            foodName={foodName}
+            onFoodNameChange={setFoodName}
+            onGenerateAndEvaluate={handleGenerateAndEvaluate}
           />
         )}
 

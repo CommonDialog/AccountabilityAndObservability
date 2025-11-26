@@ -2,10 +2,16 @@ const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 const multer = require('multer');
+const Anthropic = require('@anthropic-ai/sdk');
 require('dotenv').config();
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
+
+// Initialize Anthropic client
+const anthropic = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY,
+});
 
 // Database connection
 const pool = new Pool({
@@ -198,13 +204,24 @@ async function multiStepEvaluation(foodData, teamMembers, config) {
     // Step 8: Review requirement check
     const reviewThreshold = parseFloat(config.review_threshold);
     const reviewPercentage = parseFloat(config.review_percentage);
-    const requiresReview = finalScore < reviewThreshold || (Math.random() * 100 < reviewPercentage);
+    const randomValue = Math.random() * 100;
+    const requiresReview = finalScore < reviewThreshold || (randomValue < reviewPercentage);
     
     if (requiresReview) {
+        const reviewReason = finalScore < reviewThreshold 
+            ? `Score ${finalScore.toFixed(2)} below threshold ${reviewThreshold}`
+            : `Random selection for audit (rolled ${randomValue.toFixed(2)}, threshold ${reviewPercentage}%)`;
+        
         steps.push({
             step: stepNumber++,
             type: 'review_flag',
-            text: `Food flagged for human review. Score: ${finalScore.toFixed(2)}, Threshold: ${reviewThreshold}, Random review chance: ${reviewPercentage}%`
+            text: `Food flagged for human review. ${reviewReason}`
+        });
+    } else {
+        steps.push({
+            step: stepNumber++,
+            type: 'review_check',
+            text: `Review check passed. Score: ${finalScore.toFixed(2)} (threshold: ${reviewThreshold}), Random value: ${randomValue.toFixed(2)} (review percentage: ${reviewPercentage}%)`
         });
     }
     
@@ -283,7 +300,8 @@ async function checkFourFifthsRule(classificationKey) {
             flagged,
             passRate: parseFloat((passRate * 100).toFixed(2)),
             compliant,
-            threshold: 80
+            threshold: 80,
+            requiresReview: !compliant // Flag for review if not compliant
         };
     } catch (error) {
         console.error('Error checking four-fifths rule:', error);
@@ -334,6 +352,153 @@ app.get('/api/config', async (req, res) => {
     } catch (error) {
         console.error('Error fetching config:', error);
         res.status(500).json({ error: 'Failed to fetch configuration' });
+    }
+});
+
+// Generate food JSON from name using Claude API
+app.post('/api/generate-food', async (req, res) => {
+    const client = await pool.connect();
+    
+    try {
+        const { foodName } = req.body;
+        
+        if (!foodName) {
+            return res.status(400).json({ error: 'Food name is required' });
+        }
+
+        // Create a temporary submission record to associate logs with
+        const submissionResult = await client.query(
+            `INSERT INTO food_submissions (name, raw_data, rejected)
+             VALUES ($1, $2, false)
+             RETURNING id`,
+            [foodName, JSON.stringify({ source: 'claude_generation', food_name: foodName })]
+        );
+        const submissionId = submissionResult.rows[0].id;
+
+        const prompt = `I will give you a food and I want you to format the food in JSON like this:
+
+[
+  {
+    "name": "Pizza Margherita",
+    "price": 7,
+    "messiness": 5,
+    "heaviness": 6,
+    "energy_boost": 6,
+    "healthiness": 5,
+    "shareability": 9,
+    "protein": 6,
+    "spiciness": 2,
+    "happiness": 8,
+    "allergens": ["gluten", "dairy"]
+  }
+]
+
+Do your best to rate price, messiness, heaviness, energy_boost, healthiness, shareability, protein, spiciness, and happiness on a scale of 1 to 10. For the allergens, add gluten to the array if there's gluten, dairy to the array if there's dairy and peanuts if there is peanuts. Do not guess. Be sure.
+
+The name of the food is ${foodName}.
+
+Return ONLY the JSON array, no additional text.`;
+
+        // Log the Claude API call - Request (to console and database)
+        const requestTimestamp = new Date().toISOString();
+        const model = 'claude-sonnet-4-5-20250929';
+        const requestLogText = `Claude API Request - Food: ${foodName}, Model: ${model}, Max Tokens: 1024, Prompt: ${prompt.substring(0, 200)}...`;
+        
+        console.log('=== CLAUDE API CALL - REQUEST ===');
+        console.log('Timestamp:', requestTimestamp);
+        console.log('Submission ID:', submissionId);
+        console.log('Endpoint: anthropic.messages.create');
+        console.log('Model: ', model);
+        console.log('Food Name:', foodName);
+        console.log('Prompt:', prompt);
+        console.log('Max Tokens:', 1024);
+        console.log('================================\n');
+
+        await client.query(
+            `INSERT INTO decision_reasons (submission_id, step_number, reason_type, reason_text)
+             VALUES ($1, $2, $3, $4)`,
+            [submissionId, 1, 'claude_api_request', requestLogText]
+        );
+
+        const callStartTime = Date.now();
+        const message = await anthropic.messages.create({
+            model: model,
+            max_tokens: 1024,
+            messages: [
+                { role: "user", content: prompt }
+            ],
+        });
+        const callDuration = Date.now() - callStartTime;
+
+        // Extract JSON from response
+        const responseText = message.content[0].text;
+        
+        // Log the Claude API call - Response (to console and database)
+        const responseTimestamp = new Date().toISOString();
+        const responseLogText = `Claude API Response - Duration: ${callDuration}ms, Response ID: ${message.id}, Model: ${message.model}, Stop Reason: ${message.stop_reason}, Input Tokens: ${message.usage.input_tokens}, Output Tokens: ${message.usage.output_tokens}, Response: ${responseText}`;
+        
+        console.log('=== CLAUDE API CALL - RESPONSE ===');
+        console.log('Timestamp:', responseTimestamp);
+        console.log('Submission ID:', submissionId);
+        console.log('Duration (ms):', callDuration);
+        console.log('Response ID:', message.id);
+        console.log('Model:', message.model);
+        console.log('Stop Reason:', message.stop_reason);
+        console.log('Input Tokens:', message.usage.input_tokens);
+        console.log('Output Tokens:', message.usage.output_tokens);
+        console.log('Response Text:', responseText);
+        console.log('==================================\n');
+
+        await client.query(
+            `INSERT INTO decision_reasons (submission_id, step_number, reason_type, reason_text)
+             VALUES ($1, $2, $3, $4)`,
+            [submissionId, 2, 'claude_api_response', responseLogText]
+        );
+
+        // Strip markdown code blocks if present
+        let cleanedResponse = responseText.trim();
+        if (cleanedResponse.startsWith('```json')) {
+            cleanedResponse = cleanedResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (cleanedResponse.startsWith('```')) {
+            cleanedResponse = cleanedResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+
+        const foodData = JSON.parse(cleanedResponse);
+        
+        client.release();
+        res.json({ foods: foodData });
+    } catch (error) {
+        // Log error to console and database
+        const errorLogText = `Claude API Error - Food: ${req.body.foodName}, Error: ${error.message}, Stack: ${error.stack}`;
+        
+        console.error('=== CLAUDE API CALL - ERROR ===');
+        console.error('Timestamp:', new Date().toISOString());
+        console.error('Food Name:', req.body.foodName);
+        console.error('Error:', error);
+        console.error('Error Message:', error.message);
+        console.error('Error Stack:', error.stack);
+        console.error('================================\n');
+
+        try {
+            // Try to log error to database if we have a submission
+            const submissionResult = await client.query(
+                `SELECT id FROM food_submissions WHERE name = $1 ORDER BY submitted_at DESC LIMIT 1`,
+                [req.body.foodName]
+            );
+            
+            if (submissionResult.rows.length > 0) {
+                await client.query(
+                    `INSERT INTO decision_reasons (submission_id, step_number, reason_type, reason_text)
+                     VALUES ($1, $2, $3, $4)`,
+                    [submissionResult.rows[0].id, 3, 'claude_api_error', errorLogText]
+                );
+            }
+        } catch (dbError) {
+            console.error('Failed to log error to database:', dbError);
+        }
+        
+        client.release();
+        res.status(500).json({ error: 'Failed to generate food data: ' + error.message });
     }
 });
 
@@ -460,6 +625,16 @@ app.post('/api/evaluate', upload.single('file'), async (req, res) => {
                             type: 'compliance_check',
                             text: `Four-fifths rule check for ${classification.key}: ${complianceCheck.compliant ? 'COMPLIANT' : 'NON-COMPLIANT'} (Pass rate: ${complianceCheck.passRate}%)`
                         });
+                        
+                        // Flag for human review if non-compliant
+                        if (!complianceCheck.compliant) {
+                            evaluation.requiresReview = true;
+                            evaluation.steps.push({
+                                step: evaluation.steps.length + 1,
+                                type: 'compliance_review_flag',
+                                text: `Food flagged for human review due to four-fifths rule non-compliance. Classification: ${classification.key}, Pass rate: ${complianceCheck.passRate}% (threshold: 80%)`
+                            });
+                        }
                     }
                 }
             }

@@ -30,6 +30,12 @@ AccountabilityAndObservability/
 
 ## Features
 
+### 🎯 Claude API Integration (NEW!)
+- **AI-Powered Food Rating Generation**: Simply enter a food name and Claude AI generates all ratings automatically
+- **Instant JSON Creation**: No need to manually create JSON files for single food items
+- **Smart Allergen Detection**: AI identifies common allergens (gluten, dairy, peanuts)
+- **Two Input Options**: Choose between AI generation or traditional file upload
+
 ### 🤖 Multi-Step AI Agent Evaluation
 - 10-step evaluation process with full transparency
 - LLM tool integration (nutritional information)
@@ -83,12 +89,16 @@ psql -d food_eval_db -f schema.sql
 # Configure environment
 cp .env.example .env
 # Edit .env with your database credentials
+# OPTIONAL: Add your Anthropic API key for AI food generation:
+# ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
 
 # Start server
 npm run dev
 ```
 
 Backend will run on http://localhost:3001
+
+**Optional Claude API Setup**: For AI-powered food rating generation, get an API key from https://console.anthropic.com/ and add it to `backend/.env`. See `CLAUDE-API-SETUP.md` for detailed instructions.
 
 ### Frontend Setup
 
@@ -109,8 +119,18 @@ Frontend will run on http://localhost:3000
 
 ## Usage
 
+### Option 1: AI-Powered Food Generation (NEW!)
+1. Go to **Evaluate Food** tab
+2. Enter a food name in the text box (e.g., "Chicken Wings", "Veggie Burger")
+3. Click **Generate & Evaluate Food**
+4. Claude AI automatically generates ratings and evaluates the food
+5. View results with full reasoning
+
+### Option 2: Upload JSON File (Original Method)
 1. **Evaluate Food**: Upload a JSON file with food options
 2. **View Results**: See ranked evaluations with full reasoning
+
+### Other Features
 3. **Review Queue**: Human oversight for flagged items
 4. **Configure**: Adjust algorithm weights and thresholds
 5. **Monitor Compliance**: Track four-fifths rule adherence
@@ -172,6 +192,7 @@ Frontend will run on http://localhost:3000
 - Node.js + Express
 - PostgreSQL database
 - Multer for file uploads
+- Anthropic SDK (Claude 3.5 Sonnet) for AI food generation
 - Multi-step AI agent evaluation
 
 ## API Endpoints
@@ -180,6 +201,7 @@ Frontend will run on http://localhost:3000
 - `PUT /api/team/:id` - Update member
 - `GET /api/config` - System configuration
 - `PUT /api/config/:key` - Update config
+- `POST /api/generate-food` - **NEW:** Generate food ratings with Claude AI
 - `POST /api/evaluate` - Evaluate foods
 - `GET /api/search` - Search history
 - `GET /api/review-queue` - Review queue

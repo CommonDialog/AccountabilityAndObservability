@@ -38,7 +38,21 @@ cp .env.example .env
 # DB_PASSWORD=postgres
 # DB_PORT=5432
 # PORT=3001
+# ANTHROPIC_API_KEY=your_key_here (OPTIONAL - for AI food generation)
 ```
+
+### Optional: Enable Claude API Integration
+
+For AI-powered food rating generation:
+
+1. Get an API key from https://console.anthropic.com/
+2. Add to `backend/.env`:
+   ```
+   ANTHROPIC_API_KEY=sk-ant-api03-your-actual-key-here
+   ```
+3. Restart the backend server
+
+See `CLAUDE-API-SETUP.md` for detailed instructions. **Note:** The app works fine without this - it just enables the AI food generation feature.
 
 ### Start Backend Server
 
@@ -84,6 +98,24 @@ npm start
 Frontend should automatically open at http://localhost:3000
 
 ## Step 4: Test the Application
+
+### Option A: Test AI Food Generation (if you added API key)
+
+1. Go to the **Evaluate Food** tab
+2. In the "Name of Food" text box, type: `Chicken Wings`
+3. Click **Generate & Evaluate Food**
+4. Watch the notifications:
+   - "Generating food ratings with AI..."
+   - "Evaluating food..."
+5. See results with AI-generated ratings!
+
+**Try these foods:**
+- "Veggie Burger"
+- "Sushi Combo"
+- "Pepperoni Pizza"
+- "Hawaiian Pizza" (watch it get rejected! 🍍)
+
+### Option B: Test with JSON Upload (original method)
 
 1. **Evaluate Food Tab**: Try uploading the sample JSON:
 
@@ -224,12 +256,13 @@ AccountabilityAndObservability/
 Once everything is running:
 
 1. **Read the main README.md** for detailed feature documentation
-2. **Check FUNCTIONALITY-CHECKLIST.md** to understand what's preserved
-3. **Explore the code** - all functionality is well-commented
-4. **Test all tabs** - each has unique features
-5. **Modify algorithm weights** in Config tab to see how scoring changes
-6. **Add team member allergies** to see allergen warnings
-7. **Submit 20+ foods** to see compliance tracking activate
+2. **Set up Claude API** (optional) - See `CLAUDE-API-SETUP.md` for AI food generation
+3. **Check FUNCTIONALITY-CHECKLIST.md** to understand what's preserved
+4. **Explore the code** - all functionality is well-commented
+5. **Test all tabs** - each has unique features
+6. **Modify algorithm weights** in Config tab to see how scoring changes
+7. **Add team member allergies** to see allergen warnings
+8. **Submit 20+ foods** to see compliance tracking activate
 
 ## Production Deployment
 
