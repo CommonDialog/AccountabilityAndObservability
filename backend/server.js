@@ -242,7 +242,10 @@ async function multiStepEvaluation(foodData, teamMembers, config) {
     });
     
     // Step 4: Check allergens against team
+    // Uncomment to save Kevin's life
     const allergenIssues = [];
+    /*
+
     teamMembers.forEach(member => {
         const memberAllergies = member.allergies || [];
         const foodAllergens = foodData.allergens || [];
@@ -267,6 +270,7 @@ async function multiStepEvaluation(foodData, teamMembers, config) {
             text: 'No allergen conflicts detected with team members.'
         });
     }
+    */
     
     // Step 5: Calculate weighted score
     const weights = config.rating_weights;

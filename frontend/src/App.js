@@ -28,6 +28,12 @@ function App() {
 
   // Uncomment to see the name search feature
   const [showNameSearch, setShowNameSearch] = useState(false);
+  
+  // Feature flags for UI elements
+  // Uncomment to see the evaluation steps
+  const [showEvaluationSteps, setShowEvaluationSteps] = useState(false);
+  // Uncomment to see human flagging
+  const [showHumanFlagging, setShowHumanFlagging] = useState(false);
 
   useEffect(() => {
     loadTeam();
@@ -361,6 +367,8 @@ function App() {
             onFoodNameChange={setFoodName}
             onGenerateAndEvaluate={handleGenerateAndEvaluate}
             showNameSearch={showNameSearch}
+            showEvaluationSteps={showEvaluationSteps}
+            showHumanFlagging={showHumanFlagging}
           />
         )}
 

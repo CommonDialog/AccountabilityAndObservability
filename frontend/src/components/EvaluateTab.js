@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-function FoodResultCard({ food, rank }) {
+function FoodResultCard({ food, rank, showEvaluationSteps, showHumanFlagging }) {
   const [showDetails, setShowDetails] = useState(false);
 
   return (
@@ -21,7 +21,7 @@ function FoodResultCard({ food, rank }) {
         </div>
       )}
 
-      {food.requiresReview && !food.rejected && (
+      {showHumanFlagging && food.requiresReview && !food.rejected && (
         <div className="review-flag">⚠️ Flagged for Human Review</div>
       )}
 
@@ -85,12 +85,14 @@ function FoodResultCard({ food, rank }) {
         </div>
       )}
 
-      <button 
-        className="btn-secondary"
-        onClick={() => setShowDetails(!showDetails)}
-      >
-        {showDetails ? 'Hide' : 'Show'} Evaluation Steps
-      </button>
+      {showEvaluationSteps && (
+        <button 
+          className="btn-secondary"
+          onClick={() => setShowDetails(!showDetails)}
+        >
+          {showDetails ? 'Hide' : 'Show'} Evaluation Steps
+        </button>
+      )}
 
       {showDetails && food.reasons && (
         <div className="evaluation-steps">
@@ -106,7 +108,7 @@ function FoodResultCard({ food, rank }) {
   );
 }
 
-function EvaluateTab({ selectedFile, onFileSelect, onEvaluate, loading, results, foodName, onFoodNameChange, onGenerateAndEvaluate, showNameSearch }) {
+function EvaluateTab({ selectedFile, onFileSelect, onEvaluate, loading, results, foodName, onFoodNameChange, onGenerateAndEvaluate, showNameSearch, showEvaluationSteps, showHumanFlagging }) {
   return (
     <div className="tab-content">
       <div className="upload-section">
@@ -189,7 +191,7 @@ function EvaluateTab({ selectedFile, onFileSelect, onEvaluate, loading, results,
         <div className="results-section">
           <h2>Evaluation Results (Ranked)</h2>
           {results.map((food, index) => (
-            <FoodResultCard key={food.id} food={food} rank={index + 1} />
+            <FoodResultCard key={food.id} food={food} rank={index + 1} showEvaluationSteps={showEvaluationSteps} showHumanFlagging={showHumanFlagging} />
           ))}
         </div>
       )}
