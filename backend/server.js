@@ -3,6 +3,7 @@ const cors = require('cors');
 const { Pool } = require('pg');
 const multer = require('multer');
 const Anthropic = require('@anthropic-ai/sdk');
+const OpenAI = require('openai');
 require('dotenv').config();
 
 const app = express();
@@ -11,6 +12,11 @@ const upload = multer({ storage: multer.memoryStorage() });
 // Initialize Anthropic client
 const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY,
+});
+
+// Initialize OpenAI client
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
 });
 
 // Database connection
@@ -366,14 +372,35 @@ app.post('/api/generate-food', async (req, res) => {
             return res.status(400).json({ error: 'Food name is required' });
         }
 
+        // Detect bias in user input
+        const biasIndicators = detectBias({ name: foodName }, foodName);
+        
         // Create a temporary submission record to associate logs with
         const submissionResult = await client.query(
             `INSERT INTO food_submissions (name, raw_data, rejected)
              VALUES ($1, $2, false)
              RETURNING id`,
-            [foodName, JSON.stringify({ source: 'claude_generation', food_name: foodName })]
+            [foodName, JSON.stringify({ source: 'claude_generation', food_name: foodName, bias_indicators: biasIndicators })]
         );
         const submissionId = submissionResult.rows[0].id;
+
+        // Log bias detection results
+        if (biasIndicators.length > 0) {
+            const biasLogText = `User input bias detected for "${foodName}": ${biasIndicators.join('; ')}`;
+            
+            console.log('=== USER BIAS DETECTION ===');
+            console.log('Timestamp:', new Date().toISOString());
+            console.log('Submission ID:', submissionId);
+            console.log('Food Name:', foodName);
+            console.log('Bias Indicators:', biasIndicators);
+            console.log('===========================\n');
+
+            await client.query(
+                `INSERT INTO decision_reasons (submission_id, step_number, reason_type, reason_text)
+                 VALUES ($1, $2, $3, $4)`,
+                [submissionId, 0, 'user_bias_detection', biasLogText]
+            );
+        }
 
         const prompt = `I will give you a food and I want you to format the food in JSON like this:
 
@@ -465,8 +492,90 @@ Return ONLY the JSON array, no additional text.`;
 
         const foodData = JSON.parse(cleanedResponse);
         
+        // Step 3: Check for bias using OpenAI
+        const biasCheckPrompt = `Analyze the following food rating data for potential bias. Consider if the ratings seem unreasonably skewed, discriminatory, or unfair. The ratings should be on a 1-10 scale.
+
+Food Name: ${foodName}
+Generated Data: ${JSON.stringify(foodData, null, 2)}
+
+Respond with a JSON object containing:
+{
+  "biased": true/false,
+  "confidence": "high/medium/low",
+  "reason": "explanation of why it is or isn't biased",
+  "concerns": ["list", "of", "specific", "concerns"] or []
+}`;
+
+        console.log('=== OPENAI BIAS CHECK - REQUEST ===');
+        console.log('Timestamp:', new Date().toISOString());
+        console.log('Submission ID:', submissionId);
+        console.log('Food Name:', foodName);
+        console.log('Prompt:', biasCheckPrompt);
+        console.log('===================================\n');
+
+        await client.query(
+            `INSERT INTO decision_reasons (submission_id, step_number, reason_type, reason_text)
+             VALUES ($1, $2, $3, $4)`,
+            [submissionId, 3, 'openai_bias_check_request', `OpenAI Bias Check Request - Food: ${foodName}, Checking for bias in Claude-generated ratings`]
+        );
+
+        const biasCheckStart = Date.now();
+        const biasCheckResponse = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [
+                { role: "system", content: "You are a bias detection expert. Analyze food rating data for potential bias and respond only with valid JSON." },
+                { role: "user", content: biasCheckPrompt }
+            ],
+            temperature: 0.3,
+        });
+        const biasCheckDuration = Date.now() - biasCheckStart;
+
+        const biasCheckText = biasCheckResponse.choices[0].message.content.trim();
+        
+        console.log('=== OPENAI BIAS CHECK - RESPONSE ===');
+        console.log('Timestamp:', new Date().toISOString());
+        console.log('Submission ID:', submissionId);
+        console.log('Duration (ms):', biasCheckDuration);
+        console.log('Response ID:', biasCheckResponse.id);
+        console.log('Model:', biasCheckResponse.model);
+        console.log('Finish Reason:', biasCheckResponse.choices[0].finish_reason);
+        console.log('Prompt Tokens:', biasCheckResponse.usage.prompt_tokens);
+        console.log('Completion Tokens:', biasCheckResponse.usage.completion_tokens);
+        console.log('Response:', biasCheckText);
+        console.log('====================================\n');
+
+        // Parse bias check result
+        let biasResult;
+        let cleanedBiasResponse = biasCheckText.trim();
+        if (cleanedBiasResponse.startsWith('```json')) {
+            cleanedBiasResponse = cleanedBiasResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (cleanedBiasResponse.startsWith('```')) {
+            cleanedBiasResponse = cleanedBiasResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+        
+        try {
+            biasResult = JSON.parse(cleanedBiasResponse);
+        } catch (parseError) {
+            biasResult = { biased: false, confidence: "low", reason: "Could not parse bias check response", concerns: [] };
+        }
+
+        const biasLogText = `OpenAI Bias Check Response - Duration: ${biasCheckDuration}ms, Response ID: ${biasCheckResponse.id}, Biased: ${biasResult.biased}, Confidence: ${biasResult.confidence}, Reason: ${biasResult.reason}, Concerns: ${JSON.stringify(biasResult.concerns)}`;
+        
+        await client.query(
+            `INSERT INTO decision_reasons (submission_id, step_number, reason_type, reason_text)
+             VALUES ($1, $2, $3, $4)`,
+            [submissionId, 4, 'openai_bias_check_response', biasLogText]
+        );
+
+        console.log('=== BIAS CHECK RESULT ===');
+        console.log('Biased:', biasResult.biased);
+        console.log('Confidence:', biasResult.confidence);
+        console.log('Reason:', biasResult.reason);
+        console.log('Concerns:', biasResult.concerns);
+        console.log('=========================\n');
+        
         client.release();
-        res.json({ foods: foodData });
+        res.json({ foods: foodData, biasCheck: biasResult });
     } catch (error) {
         // Log error to console and database
         const errorLogText = `Claude API Error - Food: ${req.body.foodName}, Error: ${error.message}, Stack: ${error.stack}`;
@@ -563,6 +672,9 @@ app.post('/api/evaluate', upload.single('file'), async (req, res) => {
                 throw new Error('Food name is required');
             }
             
+            // Detect bias in food name
+            const biasIndicators = detectBias(foodData, foodData.name);
+            
             // Run multi-step evaluation
             const evaluation = await multiStepEvaluation(foodData, teamMembers, config);
             
@@ -583,6 +695,24 @@ app.post('/api/evaluate', upload.single('file'), async (req, res) => {
             );
             
             const submissionId = submissionResult.rows[0].id;
+            
+            // Log bias detection if any indicators found
+            if (biasIndicators.length > 0) {
+                const biasLogText = `User input bias detected for "${foodData.name}": ${biasIndicators.join('; ')}`;
+                
+                console.log('=== USER BIAS DETECTION (File Upload) ===');
+                console.log('Timestamp:', new Date().toISOString());
+                console.log('Submission ID:', submissionId);
+                console.log('Food Name:', foodData.name);
+                console.log('Bias Indicators:', biasIndicators);
+                console.log('==========================================\n');
+
+                await client.query(
+                    `INSERT INTO decision_reasons (submission_id, step_number, reason_type, reason_text)
+                     VALUES ($1, $2, $3, $4)`,
+                    [submissionId, 0, 'user_bias_detection', biasLogText]
+                );
+            }
             
             // Insert ratings if not rejected
             if (!evaluation.rejected) {

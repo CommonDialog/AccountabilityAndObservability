@@ -42,6 +42,34 @@ function FoodResultCard({ food, rank }) {
         </div>
       )}
 
+      {food.generationMetadata && (
+        <div className="generation-metadata">
+          <h4>🤖 AI Generation Details</h4>
+          <div className="metadata-section">
+            <h5>Claude's Generated JSON:</h5>
+            <pre className="json-display">{JSON.stringify(food.generationMetadata.claudeResponse, null, 2)}</pre>
+          </div>
+          <div className="metadata-section">
+            <h5>OpenAI Bias Check:</h5>
+            <div className={`bias-result ${food.generationMetadata.biasCheck.biased ? 'biased' : 'not-biased'}`}>
+              <p><strong>Biased:</strong> {food.generationMetadata.biasCheck.biased ? '⚠️ YES' : '✓ NO'}</p>
+              <p><strong>Confidence:</strong> {food.generationMetadata.biasCheck.confidence}</p>
+              <p><strong>Reason:</strong> {food.generationMetadata.biasCheck.reason}</p>
+              {food.generationMetadata.biasCheck.concerns && food.generationMetadata.biasCheck.concerns.length > 0 && (
+                <div>
+                  <strong>Concerns:</strong>
+                  <ul>
+                    {food.generationMetadata.biasCheck.concerns.map((concern, idx) => (
+                      <li key={idx}>{concern}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <button 
         className="btn-secondary"
         onClick={() => setShowDetails(!showDetails)}
@@ -70,7 +98,7 @@ function EvaluateTab({ selectedFile, onFileSelect, onEvaluate, loading, results,
         <h2>Enter Food Name or Upload JSON</h2>
         
         <div className="food-name-section">
-          <h3>Option 1: Enter Food Name</h3>
+          <h3>Option 2: Enter Food Name</h3>
           <p className="helper-text">Let AI generate the ratings for you!</p>
           <div className="food-name-input">
             <label htmlFor="food-name-input">Name of Food:</label>
@@ -97,7 +125,7 @@ function EvaluateTab({ selectedFile, onFileSelect, onEvaluate, loading, results,
         </div>
 
         <div className="file-upload-section">
-          <h3>Option 2: Upload Food Options (JSON)</h3>
+          <h3>Option 1: Upload Food Options (JSON)</h3>
           <div className="file-upload">
             <input
               type="file"

@@ -160,6 +160,13 @@ function App() {
 
       const generatedData = await generateResponse.json();
       
+      // Store generation metadata for display
+      const generationMetadata = {
+        claudeResponse: generatedData.foods,
+        biasCheck: generatedData.biasCheck,
+        foodName: foodName
+      };
+      
       // Step 2: Evaluate the generated food
       toast.info('Evaluating food...');
       const evaluateResponse = await fetch(`${API_URL}/evaluate`, {
@@ -174,7 +181,14 @@ function App() {
       }
 
       const data = await evaluateResponse.json();
-      setEvaluationResults(data.foods);
+      
+      // Attach generation metadata to results
+      const resultsWithMetadata = data.foods.map(food => ({
+        ...food,
+        generationMetadata
+      }));
+      
+      setEvaluationResults(resultsWithMetadata);
       setFoodName('');
       loadReviewQueue();
       loadCompliance();
