@@ -106,41 +106,45 @@ function FoodResultCard({ food, rank }) {
   );
 }
 
-function EvaluateTab({ selectedFile, onFileSelect, onEvaluate, loading, results, foodName, onFoodNameChange, onGenerateAndEvaluate }) {
+function EvaluateTab({ selectedFile, onFileSelect, onEvaluate, loading, results, foodName, onFoodNameChange, onGenerateAndEvaluate, showNameSearch }) {
   return (
     <div className="tab-content">
       <div className="upload-section">
-        <h2>Enter Food Name or Upload JSON</h2>
+        <h2>{showNameSearch ? 'Enter Food Name or Upload JSON' : 'Upload Food Options (JSON)'}</h2>
         
-        <div className="food-name-section">
-          <h3>Option 2: Enter Food Name</h3>
-          <p className="helper-text">Let AI generate the ratings for you!</p>
-          <div className="food-name-input">
-            <label htmlFor="food-name-input">Name of Food:</label>
-            <input
-              type="text"
-              id="food-name-input"
-              placeholder="e.g., Pizza Margherita, Chicken Wings, Sushi..."
-              value={foodName}
-              onChange={(e) => onFoodNameChange(e.target.value)}
-              className="food-name-field"
-            />
-          </div>
-          <button
-            onClick={onGenerateAndEvaluate}
-            disabled={!foodName || loading}
-            className="btn-primary"
-          >
-            {loading ? 'Generating & Evaluating...' : 'Generate & Evaluate Food'}
-          </button>
-        </div>
+        {showNameSearch && (
+          <>
+            <div className="food-name-section">
+              <h3>Option 1: Enter Food Name</h3>
+              <p className="helper-text">Let AI generate the ratings for you!</p>
+              <div className="food-name-input">
+                <label htmlFor="food-name-input">Name of Food:</label>
+                <input
+                  type="text"
+                  id="food-name-input"
+                  placeholder="e.g., Pizza Margherita, Chicken Wings, Sushi..."
+                  value={foodName}
+                  onChange={(e) => onFoodNameChange(e.target.value)}
+                  className="food-name-field"
+                />
+              </div>
+              <button
+                onClick={onGenerateAndEvaluate}
+                disabled={!foodName || loading}
+                className="btn-primary"
+              >
+                {loading ? 'Generating & Evaluating...' : 'Generate & Evaluate Food'}
+              </button>
+            </div>
 
-        <div className="divider">
-          <span>OR</span>
-        </div>
+            <div className="divider">
+              <span>OR</span>
+            </div>
+          </>
+        )}
 
         <div className="file-upload-section">
-          <h3>Option 1: Upload Food Options (JSON)</h3>
+          <h3>{showNameSearch ? 'Option 2: Upload Food Options (JSON)' : 'Upload Food Options (JSON)'}</h3>
           <div className="file-upload">
             <input
               type="file"

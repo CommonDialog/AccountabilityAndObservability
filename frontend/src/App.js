@@ -26,6 +26,9 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showRejected, setShowRejected] = useState(false);
 
+  // Uncomment to see the name search feature
+  const [showNameSearch, setShowNameSearch] = useState(false);
+
   useEffect(() => {
     loadTeam();
     loadConfig();
@@ -357,6 +360,7 @@ function App() {
             foodName={foodName}
             onFoodNameChange={setFoodName}
             onGenerateAndEvaluate={handleGenerateAndEvaluate}
+            showNameSearch={showNameSearch}
           />
         )}
 
